@@ -72,7 +72,8 @@ module data_mod
         integer rmin_int, rmax_int, zmin_int, zmax_int
         integer, allocatable, dimension(:) :: zregright_int
         integer pointr, pointz
-
+        logical fluid_switch, nanbu_switch 
+        integer trace_switch
 
         open(unit=input_unit, file="input_data.txt", status="old")
 
@@ -82,8 +83,8 @@ module data_mod
         read(input_unit,*) output_skip, restart_skip
         !Skip two lines of input_data.txt.  These lines have information 
         !That is only needed by the simulation
-        read(input_unit,*) 
-        read(input_unit,*)
+        read(input_unit,*) fluid_switch, nanbu_switch 
+        read(input_unit,*) trace_switch
         read(input_unit,*) drfine, dzfine
         read(input_unit,*) s_cell_dr, s_cell_dz
 
