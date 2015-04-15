@@ -80,6 +80,10 @@ module data_mod
         read(input_unit,*) nsteps, tau
         read(input_unit,*) use_restart, single_proc_mode
         read(input_unit,*) output_skip, restart_skip
+        !Skip two lines of input_data.txt.  These lines have information 
+        !That is only needed by the simulation
+        read(input_unit,*) 
+        read(input_unit,*)
         read(input_unit,*) drfine, dzfine
         read(input_unit,*) s_cell_dr, s_cell_dz
 
