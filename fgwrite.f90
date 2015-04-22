@@ -129,7 +129,7 @@ module write_mod
         open(unit=spoly_unit, file='./geom/spoly.dat',status='replace')
 
         do i = 1,npoly
-            write(spoly_unit,*) polygons(i)%numpoints, polygons(i)%polytype, polygons(i)%reflect
+            write(spoly_unit,*) polygons(i)%numpoints, polygons(i)%polytype, polygons(i)%reflect, polygons(i)%temperature
             do j = 1,polygons(i)%numpoints
                 write(spoly_unit,*) polygons(i)%points(j)%z*dzfine, polygons(i)%points(j)%r*drfine ! These are written FLIPPED..(Z,R) instead of (R,Z)
             end do
