@@ -701,7 +701,7 @@ module mask_calc_mod
         ! Build a type for storing information about line segments
         type lineseg_type
            integer, allocatable, dimension(:) :: flag, pointflag, skipflag, rangeflag
-           real(8), allocatable, dimension(:) :: rmin, rmax, zmin,zmax, rstart
+           real(8), allocatable, dimension(:) :: rmin, rmax, zmin,zmax, rstart, zstart
            real(8), allocatable, dimension(:) :: slope, intercept 
            integer Nlines
 
@@ -726,33 +726,38 @@ module mask_calc_mod
            allocate(lines(m)%rmin(lines(m)%Nlines),lines(m)%rmax(lines(m)%Nlines),lines(m)%flag(lines(m)%Nlines),lines(m)%zmax(lines(m)%Nlines))
            allocate(lines(m)%zmin(lines(m)%Nlines),lines(m)%slope(lines(m)%Nlines),lines(m)%intercept(lines(m)%Nlines))
            allocate(lines(m)%skipflag(lines(m)%Nlines),lines(m)%pointflag(lines(m)%Nlines),lines(m)%rstart(lines(m)%Nlines))
-           allocate(lines(m)%rangeflag(lines(m)%Nlines))
+           allocate(lines(m)%rangeflag(lines(m)%Nlines),lines(m)%zstart(lines(m)%Nlines))
            !Now run over each lines segment to convert it to slope-intercept form
+           write(*,*) 'Finding Cells inside metal'
            do i=1,lines(m)%Nlines-1
-                lines(m)%slope(i)=(polygon(m)%points(i+1)%r-polygon(m)%points(i)%r)*drfine/((polygon(m)%points(i+1)%z-polygon(m)%points(i)%z)*dzfine)
-                lines(m)%intercept(i)=polygon(m)%points(i)%r*drfine-lines(m)%slope(i)*polygon(m)%points(i)%z*dzfine
-
+           !write(*,*) 'Loop - ', i
+                lines(m)%slope(i)=dble(polygon(m)%points(i+1)%r-polygon(m)%points(i)%r)*drfine/(dble(polygon(m)%points(i+1)%z-polygon(m)%points(i)%z)*dzfine)
+                lines(m)%intercept(i)=dble(polygon(m)%points(i)%r)*drfine-lines(m)%slope(i)*dble(polygon(m)%points(i)%z)*dzfine
+           !write(*,*) 'A'
                 !Verticle and horizontal lines are given special cases, so flag
                 !them
-                lines(m)%flag(i)=0 !Set flag generally to zero, the correct for exceptions
+                lines(m)%flag(i)=0 !Set flag generally to zero, then correct for exceptions
+               ! write(*,*) 'Vert and Horz'
                 if(polygon(m)%points(i+1)%z.eq.polygon(m)%points(i)%z) lines(m)%flag(i)=1 !Verticle line
                 if(polygon(m)%points(i+1)%r.eq.polygon(m)%points(i)%r) lines(m)%flag(i)=2 !Horizontal line
-
+               ! write(*,*) 'Finding endpoints'
                 !Now find the endpoints sorted by size, not input order
-                lines(m)%rmax(i)=max(polygon(m)%points(i)%r*drfine,polygon(m)%points(i+1)%r*drfine)             
-                lines(m)%rmin(i)=min(polygon(m)%points(i)%r*drfine,polygon(m)%points(i+1)%r*drfine)             
-                lines(m)%zmin(i)=min(polygon(m)%points(i)%z*dzfine,polygon(m)%points(i+1)%z*dzfine)
-                lines(m)%zmax(i)=max(polygon(m)%points(i)%z*dzfine,polygon(m)%points(i+1)%z*dzfine)
+                lines(m)%rmax(i)=max(dble(polygon(m)%points(i)%r)*drfine,dble(polygon(m)%points(i+1)%r)*drfine)             
+                lines(m)%rmin(i)=min(dble(polygon(m)%points(i)%r)*drfine,dble(polygon(m)%points(i+1)%r)*drfine)             
+                lines(m)%zmin(i)=min(dble(polygon(m)%points(i)%z)*dzfine,dble(polygon(m)%points(i+1)%z)*dzfine)
+                lines(m)%zmax(i)=max(dble(polygon(m)%points(i)%z)*dzfine,dble(polygon(m)%points(i+1)%z)*dzfine)
                 !Find the starting radius of the line. It is used later to check
                 !if the line starts at a radius that falls inside the collision
                 !cell
-                lines(m)%rstart(i)=dble(polygon(m)%points(i)%r*drfine)
+               ! write(*,*) 'Rstart Zstart'
+                lines(m)%rstart(i)=dble(polygon(m)%points(i)%r)*drfine
+                lines(m)%zstart(i)=dble(polygon(m)%points(i)%z)*dzfine
 
             end do !End of loop over line segments
         !Now grab the last line segment from the last point to the first            
-           
-                lines(m)%slope(lines(m)%Nlines)=(polygon(m)%points(1)%r*drfine-polygon(m)%points(lines(m)%Nlines)%r*drfine)/(polygon(m)%points(1)%z*dzfine-polygon(m)%points(lines(m)%Nlines)%z*dzfine)
-                lines(m)%intercept(lines(m)%Nlines)=polygon(m)%points(lines(m)%Nlines)%r*drfine-lines(m)%slope(lines(m)%Nlines)*polygon(m)%points(lines(m)%Nlines)%z*dzfine
+          ! write(*,*) 'B'
+                lines(m)%slope(lines(m)%Nlines)=(dble(polygon(m)%points(1)%r-polygon(m)%points(lines(m)%Nlines)%r)*drfine)/(dble(polygon(m)%points(1)%z-polygon(m)%points(lines(m)%Nlines)%z)*dzfine)
+                lines(m)%intercept(lines(m)%Nlines)=dble(polygon(m)%points(lines(m)%Nlines)%r)*drfine-lines(m)%slope(lines(m)%Nlines)*dble(polygon(m)%points(lines(m)%Nlines)%z)*dzfine
 
                 !Verticle and horizontal lines are given special cases, so flag
                 !them
@@ -761,14 +766,15 @@ module mask_calc_mod
                 if(polygon(m)%points(1)%r.eq.polygon(m)%points(lines(m)%Nlines)%r) lines(m)%flag(lines(m)%Nlines)=2 !Horizontal line
 
                 !Now find the endpoints sorted by size, not input order
-                lines(m)%rmax(lines(m)%Nlines)=max(polygon(m)%points(1)%r*drfine,polygon(m)%points(lines(m)%Nlines)%r*drfine)             
-                lines(m)%rmin(lines(m)%Nlines)=min(polygon(m)%points(1)%r*drfine,polygon(m)%points(lines(m)%Nlines)%r*drfine)             
-                lines(m)%zmin(lines(m)%Nlines)=min(polygon(m)%points(1)%z*dzfine,polygon(m)%points(lines(m)%Nlines)%z*dzfine)
-                lines(m)%zmax(lines(m)%Nlines)=max(polygon(m)%points(1)%z*dzfine,polygon(m)%points(lines(m)%Nlines)%z*dzfine)
+                lines(m)%rmax(lines(m)%Nlines)=max(dble(polygon(m)%points(1)%r)*drfine,dble(polygon(m)%points(lines(m)%Nlines)%r)*drfine)             
+                lines(m)%rmin(lines(m)%Nlines)=min(dble(polygon(m)%points(1)%r)*drfine,dble(polygon(m)%points(lines(m)%Nlines)%r)*drfine)             
+                lines(m)%zmin(lines(m)%Nlines)=min(dble(polygon(m)%points(1)%z)*dzfine,dble(polygon(m)%points(lines(m)%Nlines)%z)*dzfine)
+                lines(m)%zmax(lines(m)%Nlines)=max(dble(polygon(m)%points(1)%z)*dzfine,dble(polygon(m)%points(lines(m)%Nlines)%z)*dzfine)
                 !Find the starting radius of the line. It is used later to check
                 !if the line starts at a radius that falls inside the collision
                 !cell
-                lines(m)%rstart(lines(m)%Nlines)=dble(polygon(m)%points(lines(m)%Nlines)%r*drfine)
+                lines(m)%rstart(lines(m)%Nlines)=dble(polygon(m)%points(lines(m)%Nlines)%r)*drfine
+                lines(m)%zstart(lines(m)%Nlines)=dble(polygon(m)%points(lines(m)%Nlines)%z)*dzfine
 
              !This section assigns a flag to each endpoint so that the metal
              !detection algorithm will know what to do with the point if it falls
@@ -784,7 +790,7 @@ module mask_calc_mod
              !For horizontal lines, the algorithm looks for the points before
              !and after the line to determine what type of point it is, and the
              !information is flagged on the last point of the line.
-
+           !  write(*,*) 'Flagging endpoints'
              do i=1,lines(m)%Nlines
                   nextswitch=0 !Used to search along horizontal lines. 
                   ibefore=i-1 !Previous point on the polynomial
@@ -846,7 +852,7 @@ module mask_calc_mod
        !an odd number of times, it is inside.
 
        !Now loop over every cell:
-
+        write(*,*) 'Counting Crossings'
         do i = 1,num_proc_r
             do j = 1,num_proc_z
                 do k = 1,processors(i,j)%nc
@@ -874,8 +880,13 @@ module mask_calc_mod
                          ! load a variable that tells the algortihm to skip the
                          ! line before and after the endpoint that falls between
                          ! rmin and rmax
+                         ! Also make sure that the starting z for the ray is
+                         ! less than the z position of the point.  Otherwise,
+                         ! the algorithm would count it as an intersection.
                          if(lines(m)%rstart(ii).gt.dble(processors(i,j)%collcells(k)%rmin)*drfine.and.&
-                            lines(m)%rstart(ii).lt.dble(processors(i,j)%collcells(k)%rmax)*drfine) then
+                            lines(m)%rstart(ii).lt.dble(processors(i,j)%collcells(k)%rmax)*drfine.and.&
+                            lines(m)%zstart(ii).gt.dble(processors(i,j)%collcells(k)%zmin)*dzfine) then
+                            
                             !Setting this to 1 lets the algorithm know that the
                             !endpoint falls between rmin and rmax.  rangeflag=0
                             !tells the algorithm that the point does not fall in
